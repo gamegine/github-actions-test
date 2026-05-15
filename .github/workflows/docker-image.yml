@@ -32,6 +32,12 @@ jobs:
         if: runner.environment != 'github-hosted'
         uses: docker/setup-docker-action@v5.1.0
 
+      # Add support for more platforms with QEMU (optional)
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        if: vars.DOCKER_PLATFORMS != ''
+        uses: docker/setup-qemu-action@v4
+
       # https://github.com/docker/setup-buildx-action
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v4.0.0
@@ -69,10 +75,10 @@ jobs:
           # list of Docker images to use as base name for tags
           images: |
             ${{ vars.DOCKER_IMAGES }}
-            name=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }},enable=${{ vars.USE_GITHUB_REGISTRY == 'true' }}
+            name=ghcr.io/${{ github.repository }},enable=${{ vars.USE_GITHUB_REGISTRY == 'true' }}
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=sha
+            type=sha,prefix=sha-
             # latest only in default branch
             type=raw,value=latest,enable={{is_default_branch}}
             # branch,tag
@@ -89,9 +95,12 @@ jobs:
         with:
           context: .
           push: true
+          #
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
+          #
+          platforms: ${{ vars.DOCKER_PLATFORMS }}
           # Software Bill of Material (SBOM) and provenance attestations add metadata about the contents of your image, and how it was built.
           provenance: true
           sbom: true
