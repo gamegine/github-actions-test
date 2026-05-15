@@ -24,9 +24,6 @@ jobs:
     if: vars.DOCKER_IMAGES != ''
 
     steps:
-      - name: name of branch or tag that triggered the workflow run. 
-        run: echo "Ref: ${{ github.ref_name }}"
-
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
