@@ -49,7 +49,7 @@ jobs:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Login to GitHub Registry
-        if: vars.GITHUB_REGISTRY == 'true'
+        if: vars.USE_GITHUB_REGISTRY == 'true'
         uses: docker/login-action@v4.1.0
         with:
           registry: ghcr.io
