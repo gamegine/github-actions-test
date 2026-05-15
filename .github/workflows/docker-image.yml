@@ -70,7 +70,9 @@ jobs:
         uses: docker/metadata-action@v6.0.0
         with:
           # list of Docker images to use as base name for tags
-          images: ${{ vars.DOCKER_IMAGES }}
+          images: |
+            ${{ vars.DOCKER_IMAGES }}
+            name=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }},enable=${{ vars.USE_GITHUB_REGISTRY == 'true' }}
           # generate Docker tags based on the following events/attributes
           tags: |
             type=sha
