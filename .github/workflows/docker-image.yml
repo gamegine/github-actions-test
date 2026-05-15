@@ -68,7 +68,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
-            type=ref,event=tag # any tags any tag format
+            # any tags any tag format
+            type=ref,event=tag 
             type=semver,pattern={{version}}
 
       # Build and push Docker image with Buildx
