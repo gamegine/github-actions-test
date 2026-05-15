@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  packages: write # push GitHub Registry
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,8 +32,8 @@ jobs:
 
       - name: Set up Docker
         # Docker is already up and running on GitHub-hosted runners on Linux and Windows.
-        if: ${{ runner.environment != 'github-hosted' }}
-        uses: docker/setup-docker-action@v5.0.0
+        if: runner.environment != 'github-hosted'
+        uses: docker/setup-docker-action@v5.1.0
 
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
@@ -43,20 +44,20 @@ jobs:
       # https://github.com/docker/login-action
       - name: Login to Docker Hub
         if: vars.DOCKER_USERNAME != ''
-        uses: docker/login-action@v4.0.0
+        uses: docker/login-action@v4.1.0
         with:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Login to GitHub Registry
         if: vars.GITHUB_REGISTRY == 'true'
-        uses: docker/login-action@v4.0.0
+        uses: docker/login-action@v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to custom registry
         if: vars.DOCKER_REGISTRY != ''
-        uses: docker/login-action@v4.0.0
+        uses: docker/login-action@v4.1.0
         with:
           registry: ${{ vars.DOCKER_REGISTRY }}
           username: ${{ vars.DOCKER_REGISTRY_USERNAME }}
@@ -72,16 +73,20 @@ jobs:
           images: ${{ vars.DOCKER_IMAGES }}
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha
-            # any tags any tag format
+            # latest only in default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # branch,tag
+            type=ref,event=branch
             type=ref,event=tag
+            # semantic versioning https://semver.org/
             type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@v7.0.0
+        uses: docker/build-push-action@v7.1.0
         with:
           context: .
           push: true
@@ -92,5 +97,5 @@ jobs:
           provenance: true
           sbom: true
           # cache
-          cache-from: type=gha,scope=${{ github.workflow }}
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
