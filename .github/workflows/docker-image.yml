@@ -55,20 +55,7 @@ jobs:
       # https://github.com/docker/setup-buildx-action
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v4.0.0
-        with:  closed-pr:
-    runs-on: ubuntu-latest
-
-    steps:
-      - run: |
-          echo "PR #${{ github.event.pull_request.number }} closed"
-
-  merged-only:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-
-    steps:
-      - run: |
-          echo "PR merged"
+        with:
           # Optional custom BuildKit configuration
           buildkitd-config-inline: ${{ vars.BUILDX_CONFIG }}
 
