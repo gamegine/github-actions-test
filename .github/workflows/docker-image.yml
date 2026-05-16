@@ -9,6 +9,11 @@ on:
     tags:
       - '*'
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
     branches:
       - main
       - master
@@ -50,7 +55,20 @@ jobs:
       # https://github.com/docker/setup-buildx-action
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v4.0.0
-        with:
+        with:  closed-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          echo "PR #${{ github.event.pull_request.number }} closed"
+
+  merged-only:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          echo "PR merged"
           # Optional custom BuildKit configuration
           buildkitd-config-inline: ${{ vars.BUILDX_CONFIG }}
 
@@ -121,3 +139,10 @@ jobs:
           # Cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  pr-cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' &&
+        github.event.action == 'closed'
+    steps:
+      - run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ithub.event.pull_request.merged}}"
