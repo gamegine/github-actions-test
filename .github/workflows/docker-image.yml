@@ -30,7 +30,7 @@ jobs:
   docker:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    if: vars.DOCKER_IMAGES != ''
+    if: vars.DOCKER_IMAGES != '' && vars.USE_GITHUB_REGISTRY != 'true'
 
     steps:
       # Checkout repository source code
@@ -127,9 +127,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  pr-cleanup:
+  cleanup:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' &&
-        github.event.action == 'closed'
+    if: vars.DOCKER_IMAGES != '' && vars.USE_GITHUB_REGISTRY != 'true'
     steps:
-      - run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ithub.event.pull_request.merged}}"
+      - name: pull request cleanup
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ github.event.pull_request.merged }}"
+
+      - name: tags cleanup
+        if: github.ref_type == 'tag'
+        run: echo "Tag is ${{ github.ref_name }}"
+
+      - name: sha cleanup
+        if: github.event_name == 'push'
+        run: echo "Tag is ${{ github.ref_name }}"
