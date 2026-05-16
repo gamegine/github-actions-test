@@ -8,6 +8,15 @@ on:
       - main
     tags:
       - '*'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+    branches:
+      - main
+      - master
 
 permissions:
   contents: read
@@ -21,7 +30,7 @@ jobs:
   docker:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    if: vars.DOCKER_IMAGES != ''
+    if: vars.DOCKER_IMAGES != '' && vars.USE_GITHUB_REGISTRY != 'true'
 
     steps:
       # Checkout repository source code
@@ -90,6 +99,8 @@ jobs:
             # Git branch & tag name
             type=ref,event=branch
             type=ref,event=tag
+            # Pull request
+            type=ref,event=pr
             # "latest" tag only for default branch
             type=raw,value=latest,enable={{is_default_branch}}
             # Semantic versioning support https://semver.org/
@@ -115,3 +126,19 @@ jobs:
           # Cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: vars.DOCKER_IMAGES != '' && vars.USE_GITHUB_REGISTRY != 'true'
+    steps:
+      - name: pull request cleanup
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ github.event.pull_request.merged }}"
+
+      - name: tags cleanup
+        if: github.ref_type == 'tag'
+        run: echo "Tag is ${{ github.ref_name }}"
+
+      - name: sha cleanup
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'synchronize')
+        run: echo "Tag is ${{ github.ref_name }}"
