@@ -8,6 +8,10 @@ on:
       - main
     tags:
       - '*'
+  pull_request:
+    branches:
+      - main
+      - master
 
 permissions:
   contents: read
@@ -90,6 +94,8 @@ jobs:
             # Git branch & tag name
             type=ref,event=branch
             type=ref,event=tag
+            # Pull request
+            type=ref,event=pr
             # "latest" tag only for default branch
             type=raw,value=latest,enable={{is_default_branch}}
             # Semantic versioning support https://semver.org/
