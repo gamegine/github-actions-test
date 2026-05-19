@@ -1,0 +1,32 @@
+name: on-concurrency
+
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - '*'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+    branches:
+      - main
+      - master
+
+concurrency: # Prevent multiple runs from executing simultaneously
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-slim
+    steps:
+      - name: sleep
+        run: sleep 1
+      - name: Set up QEMU
+        run: echo test
