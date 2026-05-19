@@ -1,0 +1,25 @@
+name: job outputs
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute image name
+        id: img
+        run: echo "IMAGE=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+      - name: outputs
+        run: echo "${{ toJSON(steps.img.outputs) }}"
+      - name: outputs img
+        run: echo ${{ steps.img.outputs.IMAGE }}
+
+      - name: Login to GitHub Registry
+        id: login
+        if: vars.USE_GITHUB_REGISTRY == 'true'
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: img
+        run: echo "${{ toJSON(steps.login.outputs) }}"
