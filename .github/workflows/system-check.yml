@@ -1,0 +1,16 @@
+name: system check
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+jobs:
+  check:
+    runs-on: ${{ matrix.system }}
+    strategy:
+      matrix:
+        system: [ubuntu-latest, ubuntu-slim]
+    steps:
+      - name: runner environment
+        run: echo ${{ runner.environment }}
+      - name: Check Docker
+        run: docker --version || echo "Docker is not installed"
+      - name: Check Buildx
+        run: docker buildx version && docker buildx ls || echo "Buildx is not installed"
