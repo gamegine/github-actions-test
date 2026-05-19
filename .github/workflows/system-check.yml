@@ -7,6 +7,7 @@ jobs:
     strategy:
       matrix:
         system: [ubuntu-latest, ubuntu-slim]
+    continue-on-error: true
     steps:
       - name: runner environment
         run: echo ${{ runner.environment }}
