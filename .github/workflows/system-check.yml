@@ -14,3 +14,11 @@ jobs:
         run: docker --version || echo "Docker is not installed"
       - name: Check Buildx
         run: docker buildx version && docker buildx ls || echo "Buildx is not installed"
+
+      - name: Check Buildx
+        run: docker buildx inspect default
+      - name: Set up QEMU
+        if: vars.DOCKER_PLATFORMS != ''
+        uses: docker/setup-qemu-action@v4.0.0
+      - name: Check Buildx
+        run: docker buildx inspect default
