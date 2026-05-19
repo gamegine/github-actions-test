@@ -21,3 +21,7 @@ jobs:
         uses: docker/setup-qemu-action@v4.0.0
       - name: Check Buildx
         run: docker buildx inspect default
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+      - name: Check Buildx
+        run: docker buildx inspect default
