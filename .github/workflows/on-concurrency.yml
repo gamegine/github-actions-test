@@ -26,6 +26,8 @@ jobs:
   docker:
     runs-on: ubuntu-slim
     steps:
+      - name: concurrency group
+        run: echo ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
       - name: sleep
         run: sleep 1
       - name: Set up QEMU
