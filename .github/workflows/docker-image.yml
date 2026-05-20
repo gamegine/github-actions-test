@@ -33,7 +33,7 @@ jobs:
   docker:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY != 'true'
+    if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY == 'true'
 
     steps:
       # Checkout repository source code
