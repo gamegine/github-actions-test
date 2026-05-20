@@ -21,6 +21,9 @@ on:
 permissions:
   contents: read
   packages: write # Required for push to GitHub Registry (GHCR)
+  attestations: write # Required for provenance
+  id-token: write # Required for modern attestations/provenances (OIDC)
+  artifact-metadata: write # Required to create the artifact storage record.
 
 concurrency: # Prevent multiple runs from executing simultaneously
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -95,7 +98,7 @@ jobs:
           # Generate Docker tags based on git references and semantic versioning
           tags: |
             # Git commit SHA
-            type=sha,prefix=sha-
+            type=sha,format=short,prefix=sha-
             # Git branch & tag name
             type=ref,event=branch
             type=ref,event=tag
@@ -110,22 +113,33 @@ jobs:
       # Build and publish Docker image
       # https://github.com/docker/build-push-action
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7.1.0
         with:
           context: .
           push: true
+          pull: true # Always check for updated base images
           # Generated metadata
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           # Optional multi-platform build ex: linux/amd64,linux/arm64
-          platforms: ${{ vars.DOCKER_PLATFORMS }}
+          platforms: ${{ github.event_name != 'pull_request' && vars.DOCKER_PLATFORMS || 'linux/amd64' }} # multi-platform builds are slower, disable on PRs to reduce CI time.
           # Software Bill of Material (SBOM) and provenance attestations add metadata about the contents of your image, and how it was built.
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }} # Generating the image dependency/package inventory adds generation time, Disable PRs to reduce CI time.
+          sbom: ${{ github.event_name != 'pull_request' }} # Disabled for PRs to reduce CI time.
           # Cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: false # Do not load the image into the local Docker daemon after the build (faster CI, lower disk usage)
+
+      - name: Generate artifact attestation
+        if: vars.USE_GITHUB_REGISTRY == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
 
   cleanup:
     runs-on: ubuntu-latest
