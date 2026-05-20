@@ -109,6 +109,7 @@ jobs:
             # Semantic versioning support https://semver.org/
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
       # Build and publish Docker image
       # https://github.com/docker/build-push-action
