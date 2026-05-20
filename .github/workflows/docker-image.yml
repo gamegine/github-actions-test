@@ -13,7 +13,6 @@ on:
       - opened
       - synchronize
       - reopened
-      - closed
     branches:
       - main
       - master
@@ -51,7 +50,7 @@ jobs:
       # Add support for multi-platform builds with QEMU (optional)
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        if: vars.DOCKER_PLATFORMS != ''
+        if: vars.DOCKER_PLATFORMS != '' && github.event_name != 'pull_request'
         uses: docker/setup-qemu-action@v4.0.0
 
       # Configure Buildx builder
@@ -119,13 +118,13 @@ jobs:
         with:
           context: .
           push: true
-          pull: true # Always check for updated base images
+          pull: true # Always check for updated base images to receive security patches and dependency updates
           # Generated metadata
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           # Optional multi-platform build ex: linux/amd64,linux/arm64
-          platforms: ${{ github.event_name != 'pull_request' && vars.DOCKER_PLATFORMS || 'linux/amd64' }} # multi-platform builds are slower, disable on PRs to reduce CI time.
+          platforms: ${{ github.event_name != 'pull_request' && vars.DOCKER_PLATFORMS }} # multi-platform builds are slower, disable on PRs to reduce CI time.
           # Software Bill of Material (SBOM) and provenance attestations add metadata about the contents of your image, and how it was built.
           provenance: ${{ github.event_name != 'pull_request' }} # Generating the image dependency/package inventory adds generation time, Disable PRs to reduce CI time.
           sbom: ${{ github.event_name != 'pull_request' }} # Disabled for PRs to reduce CI time.
@@ -134,26 +133,25 @@ jobs:
           cache-to: type=gha,mode=max
           load: false # Do not load the image into the local Docker daemon after the build (faster CI, lower disk usage)
 
+
       - name: Generate artifact attestation
-        if: vars.USE_GITHUB_REGISTRY == 'true'
+        if: vars.USE_GITHUB_REGISTRY == 'true' && github.event_name != 'pull_request'
         uses: actions/attest@v4
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.digest }}
+          predicate-type: https://slsa.dev/provenance/v1
           push-to-registry: true
-
-  cleanup:
-    runs-on: ubuntu-latest
-    if: vars.DOCKER_IMAGES != '' && vars.USE_GITHUB_REGISTRY != 'true'
-    steps:
-      - name: pull request cleanup
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
-        run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ github.event.pull_request.merged }}"
-
-      - name: tags cleanup
-        if: github.ref_type == 'tag'
-        run: echo "Tag is ${{ github.ref_name }}"
-
-      - name: sha cleanup
-        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'synchronize')
-        run: echo "Tag is ${{ github.ref_name }}"
+        # https://github.com/marketplace/actions/cosign-installer
+      - name: Install Cosign
+        # Cosign enables keyless OCI image signing using
+        # GitHub Actions OIDC identities (no private keys required).
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v4
+      - name: Sign container image with Cosign
+        # Sign the pushed OCI image digest using keyless signing.
+        # This provides verifiable supply-chain integrity metadata.
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes \
+            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
