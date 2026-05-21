@@ -140,7 +140,6 @@ jobs:
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.digest }}
-          predicate-type: https://slsa.dev/provenance/v1
           push-to-registry: true
         # https://github.com/marketplace/actions/cosign-installer
       - name: Install Cosign
