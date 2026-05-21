@@ -157,8 +157,9 @@ jobs:
         run: |
           images=""
           for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
+            images+="${tag%:*}@${DIGEST} "
           done
+          echo ${images}
           cosign sign --yes ${images}
           
       - name: Verify signature (optional)
