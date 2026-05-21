@@ -27,16 +27,19 @@ jobs:
       - name: Compute image name
         id: img2
         run: | 
-          echo IMAGES= >> $GITHUB_OUTPUT
+          images=()
           if [ "${{ vars.USE_GITHUB_REGISTRY }}" = "true" ]; then
-            echo "ghcr.io/${{ github.repository }}" >> $GITHUB_OUTPUT
+            images+=("ghcr.io/${{ github.repository }}")
           fi
-          images=$(
-            for img in ${{ vars.DOCKER_IMAGES }}; do
-              [[ "$img" == *.*/* ]] || img="mydomain.com/$img"
-              echo "$img"
-            done
-          ) >> $GITHUB_OUTPUT
+          for img in ${{ vars.DOCKER_IMAGES }}; do
+            [[ "$img" == *.*/* ]] || img="mydomain.com/$img"
+            images+=("$img")
+          done
+          {
+            echo "IMAGES<<EOF"
+            printf '%s\n' "${images[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: outputs img
         run: echo ${{ steps.img2.outputs.IMAGES }}
 
