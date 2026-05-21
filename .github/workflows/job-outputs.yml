@@ -3,7 +3,7 @@ on:
   workflow_dispatch: # Manual trigger from GitHub Actions UI
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Compute image name
         id: img
@@ -23,3 +23,21 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: img
         run: echo "${{ toJSON(steps.login.outputs) }}"
+
+      - name: Compute image name
+        id: img2
+        run: | 
+          echo IMAGES= >> $GITHUB_OUTPUT
+          if [ "${{ vars.USE_GITHUB_REGISTRY }}" = "true" ]; then
+            echo "ghcr.io/${{ github.repository }}" >> $GITHUB_OUTPUT
+          fi
+          images=$(
+            for img in ${{ vars.DOCKER_IMAGES }}; do
+              [[ "$img" == *.*/* ]] || img="mydomain.com/$img"
+              echo "$img"
+            done
+          ) >> $GITHUB_OUTPUT
+      - name: outputs img
+        run: echo ${{ steps.img2.outputs.IMAGES }}
+
+        
