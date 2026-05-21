@@ -41,6 +41,6 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
       - name: outputs img
-        run: echo ${{ steps.img2.outputs.IMAGES }}
+        run: echo "${{ steps.img2.outputs.IMAGES }}"
 
         
