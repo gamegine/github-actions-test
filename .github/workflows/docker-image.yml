@@ -179,6 +179,6 @@ jobs:
           )
 
           echo images: ${images}
-          cosign verify ${images}
+          cosign verify ${images} \
             --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
