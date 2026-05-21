@@ -147,7 +147,7 @@ jobs:
         # Cosign enables keyless OCI image signing using
         # GitHub Actions OIDC identities (no private keys required).
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.1.2
       - name: Sign container image with Cosign
         # Sign the pushed OCI image digest using keyless signing.
         # This provides verifiable supply-chain integrity metadata.
