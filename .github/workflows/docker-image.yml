@@ -155,10 +155,12 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          images=""
-          for tag in ${TAGS}; do
-            images+="$(echo "$tag" | sed 's/:[^/:]*$//')@${DIGEST} "
-          done
+          images=$(
+            for tag in ${TAGS}; do
+              echo "$(echo "$tag" | sed 's/:[^/:]*$//')@${DIGEST}"
+            done | sort -u
+          )
+
           echo images: ${images}
           cosign sign --yes ${images}
           
