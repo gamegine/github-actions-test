@@ -39,7 +39,7 @@ jobs:
             echo "IMAGES<<EOF"
             printf '%s\n' "${images[@]}"
             echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          } >> $GITHUB_OUTPUT
       - name: outputs img
         run: echo ${{ steps.img2.outputs.IMAGES }}
 
