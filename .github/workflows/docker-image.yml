@@ -151,9 +151,16 @@ jobs:
         # Sign the pushed OCI image digest using keyless signing.
         # This provides verifiable supply-chain integrity metadata.
         if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          cosign sign --yes \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          images=""
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
+          cosign sign --yes ${images}
+          
       - name: Verify signature (optional)
         if: github.event_name != 'pull_request'
         continue-on-error: true
