@@ -169,7 +169,6 @@ jobs:
         continue-on-error: true
         env:
           COSIGN_EXPERIMENTAL: "true"
-        env:
           DIGEST: ${{ steps.build.outputs.digest }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
