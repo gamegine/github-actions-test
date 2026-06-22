@@ -27,6 +27,8 @@ on:
         required: false
         type: string
     secrets:
+      DOCKER_TOKEN:
+        required: false
       DOCKER_REGISTRY_TOKEN:
         required: false
       #GITHUB_TOKEN: # GitHub automatically creates it for every workflow run
