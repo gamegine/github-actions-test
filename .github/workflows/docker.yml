@@ -29,8 +29,7 @@ on:
     secrets:
       DOCKER_REGISTRY_TOKEN:
         required: false
-      GITHUB_TOKEN:
-        required: false
+      #GITHUB_TOKEN: # GitHub automatically creates it for every workflow run
   push:
     branches:
       - master
