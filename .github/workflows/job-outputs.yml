@@ -1,0 +1,15 @@
+name: job outputs
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+jobs:
+  build:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Generate data
+        id: generate
+        run: echo "DATA=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+
+      - name: outputs
+        run: echo "${{ toJSON(steps.generate.outputs) }}"
+      - name: outputs img
+        run: echo ${{ steps.generate.outputs.DATA }}
