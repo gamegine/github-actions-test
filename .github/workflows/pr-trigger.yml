@@ -1,0 +1,26 @@
+name: pr-trigger
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-slim
+    steps:
+      - name: pull request cleanup
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: echo "PR #${{ github.event.pull_request.number }} closed, merged : ${{ github.event.pull_request.merged }}"
+
+      - name: tags cleanup
+        if: github.ref_type == 'tag'
+        run: echo "Tag is ${{ github.ref_name }}"
+
+      - name: sha cleanup
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'synchronize')
+        run: echo "Tag is ${{ github.ref_name }}"
