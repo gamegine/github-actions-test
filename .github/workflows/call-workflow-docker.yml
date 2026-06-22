@@ -5,6 +5,10 @@ on:
 
 jobs:
   call-workflow:
-    uses: ${{ github.repository }}/.github/workflows/docker.yml@main
+    # owner/repository/.github/workflows/workflows.yml@main' or '././.github/workflows/workflows.yml' for local workflows
+    uses: ./.github/workflows/docker.yml
     with:
       USE_GITHUB_REGISTRY: true
+
+
+
