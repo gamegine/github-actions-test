@@ -1,0 +1,206 @@
+name: Publish Docker image
+
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+  workflow_call:
+    inputs:
+      DOCKER_IMAGES:
+        required: false
+        type: string
+      USE_GITHUB_REGISTRY:
+        required: false
+        type: string
+        default: 'false'
+      DOCKER_USERNAME:
+        required: false
+        type: string
+      DOCKER_REGISTRY:
+        required: false
+        type: string
+      DOCKER_REGISTRY_USERNAME:
+        required: false
+        type: string
+      DOCKER_PLATFORMS:
+        required: false
+        type: string
+      BUILDX_CONFIG:
+        required: false
+        type: string
+    secrets:
+      DOCKER_REGISTRY_TOKEN:
+        required: false
+      GITHUB_TOKEN:
+        required: false
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - '*'
+    paths-ignore:
+      - '.github/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+      - master
+
+env:
+  DOCKER_IMAGES: ${{ inputs.DOCKER_IMAGES || vars.DOCKER_IMAGES }}
+  USE_GITHUB_REGISTRY: ${{ inputs.USE_GITHUB_REGISTRY || vars.USE_GITHUB_REGISTRY }}
+  DOCKER_USERNAME: ${{ inputs.DOCKER_USERNAME || vars.DOCKER_USERNAME }}
+  DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY || vars.DOCKER_REGISTRY }}
+  DOCKER_REGISTRY_USERNAME: ${{ inputs.DOCKER_REGISTRY_USERNAME || vars.DOCKER_REGISTRY_USERNAME }}
+  DOCKER_PLATFORMS: ${{ inputs.DOCKER_PLATFORMS || vars.DOCKER_PLATFORMS }}
+  BUILDX_CONFIG: ${{ inputs.BUILDX_CONFIG || vars.BUILDX_CONFIG }}
+
+permissions:
+  contents: read
+  packages: write # Required for push to GitHub Registry (GHCR)
+  attestations: write # Required for provenance
+  id-token: write # Required for modern attestations/provenances (OIDC)
+  artifact-metadata: write # Required to create the artifact storage record.
+
+concurrency: # Prevent multiple runs from executing simultaneously
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY == 'true' || inputs.DOCKER_IMAGES != '' || inputs.USE_GITHUB_REGISTRY == 'true'
+
+    steps:
+      # Checkout repository source code
+      # https://github.com/actions/checkout
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
+
+      # Install and configure Docker
+      # https://github.com/docker/setup-docker-action
+      - name: Set up Docker
+        # Docker is already up and running on GitHub-hosted runners on Linux and Windows.
+        if: runner.environment != 'github-hosted'
+        uses: docker/setup-docker-action@v5.1.0
+
+      # Add support for multi-platform builds with QEMU (optional)
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        if: env.DOCKER_PLATFORMS != '' && github.event_name != 'pull_request'
+        uses: docker/setup-qemu-action@v4.1.0
+
+      # Configure Buildx builder
+      # https://github.com/docker/setup-buildx-action
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+        with:
+          # Optional custom BuildKit configuration
+          buildkitd-config-inline: ${{ env.BUILDX_CONFIG }}
+
+      # Authenticate to registries
+      # https://github.com/docker/login-action
+      - name: Login to Docker Hub
+        if: env.DOCKER_USERNAME != ''
+        uses: docker/login-action@v4.2.0
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Login to GitHub Registry (GHCR)
+        if: env.USE_GITHUB_REGISTRY == 'true'
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to custom/private registry
+        if: env.DOCKER_REGISTRY != ''
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+      # Generate Docker tags and labels
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          # Target image names
+          images: |
+            ${{ env.DOCKER_IMAGES }}
+            name=ghcr.io/${{ github.repository }},enable=${{ env.USE_GITHUB_REGISTRY == 'true' }}
+          # Generate Docker tags based on git references and semantic versioning
+          tags: |
+            # Git commit SHA
+            type=sha,format=short,prefix=sha-
+            # Git branch & tag name
+            type=ref,event=branch
+            type=ref,event=tag
+            # Pull request
+            type=ref,event=pr
+            # "latest" tag only for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Semantic versioning support https://semver.org/
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      # Build and publish Docker image
+      # https://github.com/docker/build-push-action
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7.2.0
+        with:
+          context: .
+          push: true
+          pull: true # Always check for updated base images to receive security patches and dependency updates
+          # Generated metadata
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          # Optional multi-platform build ex: linux/amd64,linux/arm64
+          platforms: ${{ github.event_name != 'pull_request' && env.DOCKER_PLATFORMS }} # multi-platform builds are slower, disable on PRs to reduce CI time.
+          # Software Bill of Material (SBOM) and provenance attestations add metadata about the contents of your image, and how it was built.
+          provenance: ${{ github.event_name != 'pull_request' }} # Generating the image dependency/package inventory adds generation time, Disable PRs to reduce CI time.
+          sbom: ${{ github.event_name != 'pull_request' }} # Disabled for PRs to reduce CI time.
+          # Cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: false # Do not load the image into the local Docker daemon after the build (faster CI, lower disk usage)
+
+
+      - name: Generate artifact attestation
+        if: env.USE_GITHUB_REGISTRY == 'true' && github.event_name != 'pull_request'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+        # https://github.com/marketplace/actions/cosign-installer
+      - name: Install Cosign
+        # Cosign enables keyless OCI image signing using
+        # GitHub Actions OIDC identities (no private keys required).
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v4.1.2
+      - name: Sign container image with Cosign
+        # Sign the pushed OCI image digest using keyless signing.
+        # This provides verifiable supply-chain integrity metadata.
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes \
+            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+      - name: Verify signature (optional)
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign verify \
+            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }} \
+            --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
