@@ -17,6 +17,5 @@ jobs:
     uses: ./.github/workflows/docker.yml
     with:
       USE_GITHUB_REGISTRY: true
-
-
-
+    secrets:
+      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
