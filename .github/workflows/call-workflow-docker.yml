@@ -18,4 +18,5 @@ jobs:
     with:
       USE_GITHUB_REGISTRY: true
     secrets:
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
       DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
