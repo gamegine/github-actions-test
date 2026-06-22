@@ -1,0 +1,10 @@
+name: Reuse workflows Publish Docker image
+
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+
+jobs:
+  call-workflow:
+    uses: ${{ github.repository }}/.github/workflows/docker.yml@main
+    with:
+      USE_GITHUB_REGISTRY: true
