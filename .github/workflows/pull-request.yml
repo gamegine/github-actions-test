@@ -1,0 +1,121 @@
+name: pull request
+
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+  pull_request:
+    types:
+      - opened
+      - reopened
+    branches:
+      - main
+      - master
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Check branch
+        id: branch_check
+        run: |
+          if git ls-remote --exit-code --heads origin rc > /dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create and push branch
+        if: steps.branch_check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b rc
+          git push origin rc
+  change-pr-target:
+    # Target (base) Source (head)
+    if: |
+      github.event.pull_request.base.ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.ref != 'rc'
+    needs: create-branch
+    runs-on: ubuntu-slim
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              base: 'rc' // new target branch
+            });
+  create-release-pr:
+    needs: create-branch
+    runs-on: ubuntu-slim
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Check Release pr
+        id: pr_check
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prs = await github.paginate(
+              github.rest.pulls.list,
+              {
+                owner,
+                repo,
+                state: 'open'
+              }
+            );
+            const existingPr = prs.find(
+              pr => 
+                pr.head.ref === 'rc' && 
+                pr.base.ref === '${{ github.event.repository.default_branch }}'
+            );
+            core.setOutput('exists', existingPr ? 'true' : 'false');
+            if (existingPr) {
+              console.log(`PR already exists: #${existingPr.number}`);
+            }
+            
+      - name: Checkout Release Candidate Branch
+        if: steps.pr_check.outputs.exists != 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: rc
+      - name: Branch Release Candidate
+        if: steps.pr_check.outputs.exists != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout rc
+          git commit --allow-empty -m "chore: prepare release candidate"
+          git push origin rc
+
+      - name: Create Release pr
+        if: steps.pr_check.outputs.exists != 'true'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            // create PR
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              head: 'rc',
+              base: '${{ github.event.repository.default_branch }}',
+              title: `Release Candidate`,
+              body: 'Automated Release Candidate PR'
+            });
+            console.log(`Created PR: #${pr.data.number}`);
