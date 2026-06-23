@@ -1,0 +1,73 @@
+name: permissions
+on:
+  workflow_dispatch: # Manual trigger from GitHub Actions UI
+
+jobs:
+  permissions:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+      artifact-metadata: write
+    steps:
+      - name: Detect GitHub token permissions
+        id: perms
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set +e
+      
+          check() {
+            local name="$1"
+            shift
+      
+            "$@" >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+              echo "$name=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$name=false" >> "$GITHUB_OUTPUT"
+            fi
+          }
+      
+          # contents: read
+          check contents_read \
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO"
+      
+          # packages: write
+          # best-effort probe against GHCR API
+          check packages_write \
+            curl -fsSL \
+              -X GET \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/user/packages?package_type=container"
+      
+          # id-token: write
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] &&
+             [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "id_token_write=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "id_token_write=false" >> "$GITHUB_OUTPUT"
+          fi
+      
+          # attestations: write
+          # GitHub exposes a dedicated attestations permission for actions/attest. :contentReference[oaicite:0]{index=0}
+          # No clean public probe exists, so mark unknown.
+          echo "attestations_write=unknown" >> "$GITHUB_OUTPUT"
+      
+          # artifact-metadata: write
+          # No public API exists to probe this permission directly.
+          echo "artifact_metadata_write=unknown" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub token permissions
+        run: |
+          echo "contents=${{ steps.perms.outputs.contents_read }}"
+          echo "packages=${{ steps.perms.outputs.packages_write }}"
+          echo "id-token=${{ steps.perms.outputs.id_token_write }}"
+          echo "attestations=${{ steps.perms.outputs.attestations_write }}"
+          echo "artifact-metadata=${{ steps.perms.outputs.artifact_metadata_write }}"
