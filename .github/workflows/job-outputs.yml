@@ -57,15 +57,15 @@ jobs:
           echo "Images to sign:"
           printf '  %s\n' "${images[@]}"
 
-          - name: Prepare images for Cosign comp
-            env:
-              TAGS: ${{ steps.meta.outputs.tags }}
-              DIGEST: digest-xxx
-            run: |
-              images=$(while read -r tag; do
-                img=${tag%:*}
-                [[ $img == *.*/* ]] || img=docker.io/$img
-                echo "$img@$DIGEST"
-              done <<< "$TAGS" | sort -u)
-              printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
-              printf 'Images to sign:\n  %s\n' "$images"
+      - name: Prepare images for Cosign 2
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: digest-xxx
+        run: |
+          images=$(while read -r tag; do
+            img=${tag%:*}
+            [[ $img == *.*/* ]] || img=docker.io/$img
+            echo "$img@$DIGEST"
+          done <<< "$TAGS" | sort -u)
+          printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
+          printf 'Images to sign:\n  %s\n' "$images"
