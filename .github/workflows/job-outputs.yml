@@ -58,6 +58,7 @@ jobs:
           printf '  %s\n' "${images[@]}"
 
       - name: Prepare images for Cosign 2
+        id: cosign2
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: digest-xxx
@@ -69,3 +70,9 @@ jobs:
           done <<< "$TAGS" | sort -u)
           printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
           printf 'Images to sign:\n  %s\n' "$images"
+
+      - name: outputs Cosign
+        run: |
+          echo ${{ steps.cosign.outputs.images }}
+          echo ---
+          echo ${{ steps.cosign2.outputs.images }}
