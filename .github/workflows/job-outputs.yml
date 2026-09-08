@@ -63,9 +63,10 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: digest-xxx
         run: |
-          images=$(while read -r tag; do
+          images=$(while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
             img=${tag%:*}
-            [[ $img == *.*/* ]] || img=docker.io/$img
+            [[ $img == *.*/* ]] || img=docker.io/$img # Add docker.io when no registry is specified
             echo "$img@$DIGEST"
           done <<< "$TAGS" | sort -u)
           printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
