@@ -25,8 +25,6 @@ jobs:
             echo 'ghcr.io/gamegine/github-actions-docker-push:main'
             echo 'ghcr.io/gamegine/github-actions-docker-push:latest'
             echo 'ghcr.io/gamegine/github-actions-docker-push:sha-892ddcc'
-            echo 'docker.io/gamegine/test-image:v1.0.0'
-            echo 'docker.io/gamegine/test-image:latest'
             echo 'registry.example.com/gamegine/test-image:v1.0.0'
             echo 'registry.example.com/gamegine/test-image:latest'
             echo 'EOF'
@@ -39,10 +37,8 @@ jobs:
           DIGEST: "digest-xxx"
         run: |
           images=()
-      
           while IFS= read -r tag; do
-            # Remove tag (:main, :latest, :sha-xxxx, ...)
-            img="${tag%:*}"
+            img="${tag%:*}" # Remove tag (:main, :latest, :sha-xxxx, ...)
             # Add docker.io when no registry is specified
             if [[ "$img" == *.*/* ]]; then
               images+=("${img}@${DIGEST}")
@@ -50,16 +46,26 @@ jobs:
               images+=("docker.io/${img}@${DIGEST}")
             fi
           done <<< "$TAGS"
-      
           # Remove duplicates
           mapfile -t images < <(printf '%s\n' "${images[@]}" | sort -u)
-      
           # Export output
           {
             echo 'images<<EOF'
             printf '%s\n' "${images[@]}"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
-
           echo "Images to sign:"
           printf '  %s\n' "${images[@]}"
+
+          - name: Prepare images for Cosign comp
+            env:
+              TAGS: ${{ steps.meta.outputs.tags }}
+              DIGEST: digest-xxx
+            run: |
+              images=$(while read -r tag; do
+                img=${tag%:*}
+                [[ $img == *.*/* ]] || img=docker.io/$img
+                echo "$img@$DIGEST"
+              done <<< "$TAGS" | sort -u)
+              printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
+              printf 'Images to sign:\n  %s\n' "$images"
