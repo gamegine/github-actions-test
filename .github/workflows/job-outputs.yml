@@ -14,16 +14,28 @@ jobs:
       - name: outputs img
         run: echo ${{ steps.generate.outputs.DATA }}
 
+      - name: Fake metadata-action output
+        id: meta
+        run: |
+          {
+            echo 'tags<<EOF'
+            echo 'oxoato/github-actions-docker-push:main'
+            echo 'oxoato/github-actions-docker-push:latest'
+            echo 'oxoato/github-actions-docker-push:sha-892ddcc'
+            echo 'ghcr.io/gamegine/github-actions-docker-push:main'
+            echo 'ghcr.io/gamegine/github-actions-docker-push:latest'
+            echo 'ghcr.io/gamegine/github-actions-docker-push:sha-892ddcc'
+            echo 'docker.io/gamegine/test-image:v1.0.0'
+            echo 'docker.io/gamegine/test-image:latest'
+            echo 'registry.example.com/gamegine/test-image:v1.0.0'
+            echo 'registry.example.com/gamegine/test-image:latest'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+    
       - name: Prepare images for Cosign
         id: cosign
         env:
-          TAGS: |
-            oxoato/github-actions-docker-push:main
-            oxoato/github-actions-docker-push:latest
-            oxoato/github-actions-docker-push:sha-892ddcc
-            ghcr.io/gamegine/github-actions-docker-push:main
-            ghcr.io/gamegine/github-actions-docker-push:latest
-            ghcr.io/gamegine/github-actions-docker-push:sha-892ddcc
+          TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: "digest-xxx"
         run: |
           images=()
