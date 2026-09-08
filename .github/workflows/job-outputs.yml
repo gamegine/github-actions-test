@@ -73,6 +73,6 @@ jobs:
 
       - name: outputs Cosign
         run: |
-          echo ${{ steps.cosign.outputs.images }}
+          echo "${{ steps.cosign.outputs.images }}"
           echo ---
-          echo ${{ steps.cosign2.outputs.images }}
+          echo "${{ steps.cosign2.outputs.images }}"
