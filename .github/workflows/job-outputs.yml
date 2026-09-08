@@ -13,3 +13,41 @@ jobs:
         run: echo "${{ toJSON(steps.generate.outputs) }}"
       - name: outputs img
         run: echo ${{ steps.generate.outputs.DATA }}
+
+      - name: Prepare images for Cosign
+        id: cosign
+        env:
+          TAGS: |
+            oxoato/github-actions-docker-push:main
+            oxoato/github-actions-docker-push:latest
+            oxoato/github-actions-docker-push:sha-892ddcc
+            ghcr.io/gamegine/github-actions-docker-push:main
+            ghcr.io/gamegine/github-actions-docker-push:latest
+            ghcr.io/gamegine/github-actions-docker-push:sha-892ddcc
+          DIGEST: "digest-xxx"
+        run: |
+          images=()
+      
+          while IFS= read -r tag; do
+            # Remove tag (:main, :latest, :sha-xxxx, ...)
+            img="${tag%:*}"
+            # Add docker.io when no registry is specified
+            if [[ "$img" == *.*/* ]]; then
+              images+=("${img}@${DIGEST}")
+            else
+              images+=("docker.io/${img}@${DIGEST}")
+            fi
+          done <<< "$TAGS"
+      
+          # Remove duplicates
+          mapfile -t images < <(printf '%s\n' "${images[@]}" | sort -u)
+      
+          # Export output
+          {
+            echo 'images<<EOF'
+            printf '%s\n' "${images[@]}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Images to sign:"
+          printf '  %s\n' "${images[@]}"
