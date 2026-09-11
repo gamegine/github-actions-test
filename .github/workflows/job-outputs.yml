@@ -81,4 +81,5 @@ jobs:
 
       - name: Warn
         run: echo "::warning title=Signature verification failed::La vérification de signature a échoué"
-
+      - name: echo toto
+        run: echo toto
