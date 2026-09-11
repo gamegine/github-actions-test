@@ -14,7 +14,8 @@ jobs:
       id-token: write # Required for modern attestations/provenances (OIDC)
       artifact-metadata: write # Required to create the artifact storage record.
     # owner/repository/.github/workflows/workflows.yml@main' or '././.github/workflows/workflows.yml' for local workflows
-    uses: ./.github/workflows/docker.yml
+#    uses: ./.github/workflows/docker.yml
+    uses: gamegine/github-actions-docker-push/.github/workflows/docker.yml@test
     with:
       USE_GITHUB_REGISTRY: true
     secrets:
