@@ -15,7 +15,7 @@ jobs:
       artifact-metadata: write # Required to create the artifact storage record.
     # owner/repository/.github/workflows/workflows.yml@main' or '././.github/workflows/workflows.yml' for local workflows
 #    uses: ./.github/workflows/docker.yml
-    uses: gamegine/github-actions-docker-push/.github/workflows/docker.yml@test
+    uses: gamegine/github-actions-docker-push/.github/workflows/print-vars.yml@test
     with:
       USE_GITHUB_REGISTRY: true
     secrets:
