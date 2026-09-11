@@ -16,8 +16,8 @@ jobs:
     # owner/repository/.github/workflows/workflows.yml@main' or '././.github/workflows/workflows.yml' for local workflows
 #    uses: ./.github/workflows/docker.yml
     uses: gamegine/github-actions-docker-push/.github/workflows/print-vars.yml@test
-    with:
-      USE_GITHUB_REGISTRY: true
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+#    with:
+#      USE_GITHUB_REGISTRY: true
+#    secrets:
+#      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+#      DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
