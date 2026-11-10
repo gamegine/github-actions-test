@@ -9,8 +9,8 @@ on:
         type: string
       USE_GITHUB_REGISTRY:
         required: false
-        type: string
-        default: 'false'
+        type: boolean
+        default: false
       DOCKER_USERNAME:
         required: false
         type: string
@@ -32,22 +32,6 @@ on:
       DOCKER_REGISTRY_TOKEN:
         required: false
       #GITHUB_TOKEN: # GitHub automatically creates it for every workflow run
-  push:
-    branches:
-      - master
-      - main
-    tags:
-      - '*'
-    paths-ignore:
-      - '.github/**'
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-    branches:
-      - main
-      - master
 
 env:
   DOCKER_IMAGES: ${{ inputs.DOCKER_IMAGES || vars.DOCKER_IMAGES }}
@@ -71,7 +55,7 @@ concurrency: # Prevent multiple runs from executing simultaneously
 
 jobs:
   docker:
-    name: Build & Push Docker Image
+    name: Docker Build & Push
     runs-on: ubuntu-latest
     if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY == 'true' || inputs.DOCKER_IMAGES != '' || inputs.USE_GITHUB_REGISTRY == 'true'
 
@@ -79,7 +63,7 @@ jobs:
       # Checkout repository source code
       # https://github.com/actions/checkout
       - name: Checkout repository
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v6.0.2
 
       # Install and configure Docker
       # https://github.com/docker/setup-docker-action
@@ -91,13 +75,13 @@ jobs:
       # Add support for multi-platform builds with QEMU (optional)
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        if: env.DOCKER_PLATFORMS != '' && github.event_name != 'pull_request'
-        uses: docker/setup-qemu-action@v4.1.0
+        if: env.DOCKER_PLATFORMS != ''
+        uses: docker/setup-qemu-action@v4.0.0
 
       # Configure Buildx builder
       # https://github.com/docker/setup-buildx-action
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v4.1.0
+        uses: docker/setup-buildx-action@v4.0.0
         with:
           # Optional custom BuildKit configuration
           buildkitd-config-inline: ${{ env.BUILDX_CONFIG }}
@@ -106,20 +90,20 @@ jobs:
       # https://github.com/docker/login-action
       - name: Login to Docker Hub
         if: env.DOCKER_USERNAME != ''
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@v4.1.0
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
       - name: Login to GitHub Registry (GHCR)
         if: env.USE_GITHUB_REGISTRY == 'true'
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to custom/private registry
         if: env.DOCKER_REGISTRY != ''
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@v4.1.0
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ env.DOCKER_REGISTRY_USERNAME }}
@@ -139,10 +123,9 @@ jobs:
           tags: |
             # Git commit SHA
             type=sha,format=short,prefix=sha-
-            # Git branch & tag name
+            # Git branch & tag name & Pull request
             type=ref,event=branch
             type=ref,event=tag
-            # Pull request
             type=ref,event=pr
             # "latest" tag only for default branch
             type=raw,value=latest,enable={{is_default_branch}}
@@ -155,7 +138,7 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.1.0
         with:
           context: .
           push: true
@@ -165,7 +148,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           # Optional multi-platform build ex: linux/amd64,linux/arm64
-          platforms: ${{ github.event_name != 'pull_request' && env.DOCKER_PLATFORMS }} # multi-platform builds are slower, disable on PRs to reduce CI time.
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || env.DOCKER_PLATFORMS }} # multi-platform builds are slower, disable on PRs to reduce CI time.
           # Software Bill of Material (SBOM) and provenance attestations add metadata about the contents of your image, and how it was built.
           provenance: ${{ github.event_name != 'pull_request' }} # Generating the image dependency/package inventory adds generation time, Disable PRs to reduce CI time.
           sbom: ${{ github.event_name != 'pull_request' }} # Disabled for PRs to reduce CI time.
@@ -174,7 +157,6 @@ jobs:
           cache-to: type=gha,mode=max
           load: false # Do not load the image into the local Docker daemon after the build (faster CI, lower disk usage)
 
-
       - name: Generate artifact attestation
         if: env.USE_GITHUB_REGISTRY == 'true' && github.event_name != 'pull_request'
         uses: actions/attest@v4
@@ -182,26 +164,55 @@ jobs:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
-        # https://github.com/marketplace/actions/cosign-installer
+
+      # Sign the pushed OCI image digest using keyless signing.
+      # This provides verifiable supply-chain integrity metadata.
+      # https://github.com/marketplace/actions/cosign-installer
       - name: Install Cosign
         # Cosign enables keyless OCI image signing using
         # GitHub Actions OIDC identities (no private keys required).
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v4.1.2
-      - name: Sign container image with Cosign
-        # Sign the pushed OCI image digest using keyless signing.
-        # This provides verifiable supply-chain integrity metadata.
+      - name: Prepare images for Cosign
+        id: cosign
         if: github.event_name != 'pull_request'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          cosign sign --yes \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
-      - name: Verify signature (optional)
+          images=$(while IFS= read -r tag; do
+            [[ -z "$tag" ]] && continue
+            img=${tag%:*}
+            [[ $img == *.*/* ]] || img=docker.io/$img
+            echo "$img@$DIGEST"
+          done <<< "$TAGS" | sort -u)
+          printf 'images<<EOF\n%s\nEOF\n' "$images" >> "$GITHUB_OUTPUT"
+          printf 'Images to sign:\n%s\n' "$images"
+      - name: Sign container image with Cosign
+        if: github.event_name != 'pull_request'
+        env:
+          IMAGES: ${{ steps.cosign.outputs.images }}
+        run: |
+            while IFS= read -r image; do
+              echo "Signing $image"
+              cosign sign --yes "$image"
+            done <<< "$IMAGES"
+      - name: Verify signature
+        id: verify-signature
         if: github.event_name != 'pull_request'
         continue-on-error: true
         env:
-          COSIGN_EXPERIMENTAL: "true"
+          IMAGES: ${{ steps.cosign.outputs.images }}
         run: |
-          cosign verify \
-            ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }} \
-            --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          while IFS= read -r image; do
+            echo "Verifying $image"
+            cosign verify \
+              "$image" \
+              --certificate-identity-regexp "^https://github\.com/${{ github.repository }}/\.github/workflows/[^@]+@refs/(heads|tags)/.+$" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          done <<< "$IMAGES"
+      - name: Warning - signature verification failed
+        if: ${{ steps.verify-signature.outcome == 'failure' }}
+        run: |
+          echo "::warning title=Signature verification::Signature verification failed !"
+
