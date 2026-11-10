@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.system }}
     strategy:
       matrix:
-        system: [ubuntu-latest, ubuntu-slim]
+        system: [ubuntu-latest, ubuntu-slim, self-hosted]
     steps:
       - name: runner environment
         run: echo ${{ runner.environment }}
