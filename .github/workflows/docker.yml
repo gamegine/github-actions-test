@@ -56,7 +56,8 @@ concurrency: # Prevent multiple runs from executing simultaneously
 jobs:
   docker:
     name: Docker Build & Push
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY == 'true' || inputs.DOCKER_IMAGES != '' || inputs.USE_GITHUB_REGISTRY == 'true'
 
     steps:
