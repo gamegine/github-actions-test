@@ -68,10 +68,10 @@ jobs:
 
       # Install and configure Docker
       # https://github.com/docker/setup-docker-action
-      - name: Set up Docker
+      #- name: Set up Docker
         # Docker is already up and running on GitHub-hosted runners on Linux and Windows.
-        if: runner.environment != 'github-hosted'
-        uses: docker/setup-docker-action@v5.1.0
+      #  if: runner.environment != 'github-hosted'
+      #  uses: docker/setup-docker-action@v5.1.0
 
       # Add support for multi-platform builds with QEMU (optional)
       # https://github.com/docker/setup-qemu-action
