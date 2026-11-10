@@ -32,6 +32,22 @@ on:
       DOCKER_REGISTRY_TOKEN:
         required: false
       #GITHUB_TOKEN: # GitHub automatically creates it for every workflow run
+    outputs:
+      image_tags:
+        description: "Generated Docker image tags"
+        value: ${{ jobs.docker.outputs.image_tags }}
+      image_digest:
+        description: "Published Docker image digest"
+        value: ${{ jobs.docker.outputs.image_digest }}
+      image_url:
+        description: "Primary Docker image URL"
+        value: ${{ jobs.docker.outputs.image_url }}
+      image_name:
+        description: "Primary Docker image name"
+        value: ${{ jobs.docker.outputs.image_name }}
+      cosign_images:
+        description: "Signed OCI image references"
+        value: ${{ jobs.docker.outputs.cosign_images }}
 
 env:
   DOCKER_IMAGES: ${{ inputs.DOCKER_IMAGES || vars.DOCKER_IMAGES }}
@@ -59,6 +75,13 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: self-hosted
     if: vars.DOCKER_IMAGES != '' || vars.USE_GITHUB_REGISTRY == 'true' || inputs.DOCKER_IMAGES != '' || inputs.USE_GITHUB_REGISTRY == 'true'
+
+    outputs:
+      image_tags: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+      image_url: ${{ steps.meta.outputs.json }}
+      image_name: ${{ steps.meta.outputs.tags }}
+      cosign_images: ${{ steps.cosign.outputs.images }}
 
     steps:
       # Checkout repository source code
