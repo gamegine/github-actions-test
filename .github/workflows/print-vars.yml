@@ -1,8 +1,17 @@
 name: print vars
 on:
   workflow_dispatch: # Manual trigger from GitHub Actions UI
+    inputs:
+      text:
+        required: false
+        type: string
+        default: 'text'
   workflow_call:
-
+    inputs:
+      text:
+        required: false
+        type: string
+        default: 'text'
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -14,7 +23,8 @@ jobs:
           echo "repository=${{ github.repository }}"
           echo "workflow_ref=${{ github.workflow_ref }}"
           echo "job_workflow_ref=${{ github.job_workflow_ref }}"
-          echo "job_workflow_ref=${{ job.workflow_ref }}"     
+          echo "job_workflow_ref=${{ job.workflow_ref }}"
+          echo input text: ${{ inputs.text }}
       - name: env
         run: env
       - name: github
