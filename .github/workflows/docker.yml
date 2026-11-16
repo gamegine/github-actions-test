@@ -39,12 +39,6 @@ on:
       image_digest:
         description: "Published Docker image digest"
         value: ${{ jobs.docker.outputs.image_digest }}
-      image_url:
-        description: "Primary Docker image URL"
-        value: ${{ jobs.docker.outputs.image_url }}
-      image_name:
-        description: "Primary Docker image name"
-        value: ${{ jobs.docker.outputs.image_name }}
       cosign_images:
         description: "Signed OCI image references"
         value: ${{ jobs.docker.outputs.cosign_images }}
@@ -79,8 +73,6 @@ jobs:
     outputs:
       image_tags: ${{ steps.meta.outputs.tags }}
       image_digest: ${{ steps.build.outputs.digest }}
-      image_url: ${{ steps.meta.outputs.json }}
-      image_name: ${{ steps.meta.outputs.tags }}
       cosign_images: ${{ steps.cosign.outputs.images }}
 
     steps:
