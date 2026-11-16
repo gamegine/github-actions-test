@@ -27,7 +27,8 @@ jobs:
     steps:
       - name: Show output
         run: |
-          echo "Images name: ${{ needs.call-workflow.outputs.image_name }}"
           echo "Images tags: ${{ needs.call-workflow.outputs.image_tags }}"
+          echo
           echo "Images digest: ${{ needs.call-workflow.outputs.image_digest }}"
+          echo
           echo "Signed OCI image references: ${{ needs.call-workflow.outputs.cosign_images }}"
