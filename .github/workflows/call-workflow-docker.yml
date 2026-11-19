@@ -16,7 +16,13 @@ jobs:
 #    uses: gamegine/github-actions-docker-push/.github/workflows/print-vars.yml@test
 #    uses: gamegine/github-actions-docker-push/.github/workflows/docker.yml@test
     with:
-      USE_GITHUB_REGISTRY: true
+      DOCKER_IMAGES: ${{ vars.DOCKER_IMAGES }}
+      USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY }}
+      DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+      DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+      DOCKER_REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_PLATFORMS: ${{ vars.DOCKER_PLATFORMS }}
+      BUILDX_CONFIG: ${{ vars.BUILDX_CONFIG }}
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
       DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
