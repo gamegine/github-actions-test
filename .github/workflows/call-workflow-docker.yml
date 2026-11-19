@@ -10,7 +10,7 @@ jobs:
       - name: Debug inputs and vars
         run: |
           echo DOCKER_IMAGES: ${{ vars.DOCKER_IMAGES }}
-          echo USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY == 'true' }}
+          echo USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY }}
           echo DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
           echo DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
           echo DOCKER_REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
@@ -29,7 +29,7 @@ jobs:
 #    uses: gamegine/github-actions-docker-push/.github/workflows/docker.yml@test
     with:
       DOCKER_IMAGES: ${{ vars.DOCKER_IMAGES }}
-      USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY }}
+      USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY == 'true' }}
       DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
       DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
       DOCKER_REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
