@@ -4,6 +4,18 @@ on:
   workflow_dispatch: # Manual trigger from GitHub Actions UI
 
 jobs:
+  debug:
+    runs-on: self-hosted
+    steps:
+      - name: Debug inputs and vars
+        run: |
+          echo DOCKER_IMAGES: ${{ vars.DOCKER_IMAGES }}
+          echo USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY }}
+          echo DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          echo DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+          echo DOCKER_REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+          echo DOCKER_PLATFORMS: ${{ vars.DOCKER_PLATFORMS }}
+          echo BUILDX_CONFIG: ${{ vars.BUILDX_CONFIG }}
   call-workflow:
     permissions:
       contents: read
