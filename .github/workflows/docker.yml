@@ -64,6 +64,29 @@ concurrency: # Prevent multiple runs from executing simultaneously
   cancel-in-progress: true
 
 jobs:
+  debug:
+    runs-on: self-hosted
+    steps:
+      - name: Debug inputs and vars
+        run: |
+          echo vars
+          echo DOCKER_IMAGES: ${{ vars.DOCKER_IMAGES }}
+          echo USE_GITHUB_REGISTRY: ${{ vars.USE_GITHUB_REGISTRY }}
+          echo DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          echo DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+          echo DOCKER_REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+          echo DOCKER_PLATFORMS: ${{ vars.DOCKER_PLATFORMS }}
+          echo BUILDX_CONFIG: ${{ vars.BUILDX_CONFIG }}
+          echo
+          echo inputs
+          echo DOCKER_IMAGES: ${{ inputs.DOCKER_IMAGES }}
+          echo USE_GITHUB_REGISTRY: ${{ inputs.USE_GITHUB_REGISTRY }}
+          echo DOCKER_USERNAME: ${{ inputs.DOCKER_USERNAME }}
+          echo DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY }}
+          echo DOCKER_REGISTRY_USERNAME: ${{ inputs.DOCKER_REGISTRY_USERNAME }}
+          echo DOCKER_PLATFORMS: ${{ inputs.DOCKER_PLATFORMS }}
+          echo BUILDX_CONFIG: ${{ inputs.BUILDX_CONFIG }}
+          
   docker:
     name: Docker Build & Push
     #runs-on: ubuntu-latest
